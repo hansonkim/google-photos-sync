@@ -28,6 +28,43 @@ def download_file(url: str, destination_folder: str, file_name: str):
             f.write(response.content)
 
 
+def download_favorites(service):
+    # 즐겨찾기한 사진 가져오기
+    body = {
+        "pageSize": 100,
+        "filters": {
+            # "featureFilter": {"includedFeatures": ["FAVORITES"]},
+            "mediaTypeFilter": {"mediaTypes": ["VIDEO"]},
+        },
+    }
+    sum = 0
+    with ThreadPoolExecutor(max_workers=50) as executor:
+        response = service.mediaItems().search(body=body).execute()
+        while response and (media_items := response.get("mediaItems")):
+            # for item in media_items:
+            # download_url = item["baseUrl"] + "=d"
+            # width = item["mediaMetadata"]["width"]
+            # height = item["mediaMetadata"]["height"]
+
+            # if width > height:
+            #     destination_folder = "/Users/hanson/Pictures/wallpaper/horizontal"
+            # else:
+            #     destination_folder = "/Users/hanson/Pictures/wallpaper/vertical"
+            # # download_file(download_url, destination_folder, item["filename"])
+            # executor.submit(
+            #     download_file, download_url, destination_folder, item["filename"]
+            # )
+            # print(item)
+            sum += len(media_items)
+            print(f"length: {sum}")
+
+            if next := response.get("nextPageToken"):
+                body.update({"pageToken": next})
+                response = service.mediaItems().search(body=body).execute()
+            else:
+                break
+
+
 if __name__ == "__main__":
     creds = None
     if os.path.exists(credFile):
@@ -47,35 +84,6 @@ if __name__ == "__main__":
     # 구글 포토 API 사용
     service = build("photoslibrary", "v1", credentials=creds, static_discovery=False)
 
-    # 즐겨찾기한 사진 가져오기
-    body = {
-        "pageSize": 100,
-        "filters": {
-            "featureFilter": {"includedFeatures": ["FAVORITES"]},
-            "mediaTypeFilter": {"mediaTypes": ["PHOTO"]},
-        },
-    }
-    with ThreadPoolExecutor(max_workers=50) as executor:
-        response = service.mediaItems().search(body=body).execute()
-        while response and (media_items := response.get("mediaItems")):
-            for item in media_items:
-                download_url = item["baseUrl"] + "=d"
-                width = item["mediaMetadata"]["width"]
-                height = item["mediaMetadata"]["height"]
-
-                if width > height:
-                    destination_folder = "/Users/hanson/Pictures/wallpaper/horizontal"
-                else:
-                    destination_folder = "/Users/hanson/Pictures/wallpaper/vertical"
-                # download_file(download_url, destination_folder, item["filename"])
-                executor.submit(
-                    download_file, download_url, destination_folder, item["filename"]
-                )
-
-            if next := response.get("nextPageToken"):
-                body.update({"pageToken": next})
-                response = service.mediaItems().search(body=body).execute()
-            else:
-                break
+    download_favorites(service)
 
     print("The end")
